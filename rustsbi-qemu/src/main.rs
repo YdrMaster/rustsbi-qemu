@@ -143,6 +143,10 @@ extern "C" fn rust_main(_hartid: usize, opaque: usize) -> Operation {
         rustsbi::init_timer(clint::get());
         rustsbi::init_reset(qemu_test::get());
         rustsbi::init_hsm(hsm);
+        println!(
+            "{:#x?}",
+            virtio0 = unsafe { (0x10001000 as *const VirtIO).read_volatile() }
+        );
         // 打印启动信息
         print!(
             "\
@@ -247,4 +251,14 @@ fn hart_id() -> usize {
 unsafe fn set_mtvec(trap_handler: usize) {
     use riscv::register::mtvec;
     mtvec::write(trap_handler, mtvec::TrapMode::Direct);
+}
+
+#[derive(Debug)]
+#[repr(C)]
+struct VirtIO {
+    magic: u32,
+    version: u32,
+    device_id: u32,
+    vendor_id: u32,
+    features: u32,
 }
