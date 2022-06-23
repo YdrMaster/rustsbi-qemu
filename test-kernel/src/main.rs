@@ -80,6 +80,39 @@ extern "C" fn primary_rust_main(hartid: usize, dtb_pa: usize) -> ! {
 ------------------------------------------------"
     );
 
+    println!(
+        "{:#x?}",
+        virtio0 = unsafe { (0x10001000 as *const VirtIO).read_volatile() }
+    );
+    println!(
+        "{:#x?}",
+        virtio0 = unsafe { (0x10002000 as *const VirtIO).read_volatile() }
+    );
+    println!(
+        "{:#x?}",
+        virtio0 = unsafe { (0x10003000 as *const VirtIO).read_volatile() }
+    );
+    println!(
+        "{:#x?}",
+        virtio0 = unsafe { (0x10004000 as *const VirtIO).read_volatile() }
+    );
+    println!(
+        "{:#x?}",
+        virtio0 = unsafe { (0x10005000 as *const VirtIO).read_volatile() }
+    );
+    println!(
+        "{:#x?}",
+        virtio0 = unsafe { (0x10006000 as *const VirtIO).read_volatile() }
+    );
+    println!(
+        "{:#x?}",
+        virtio0 = unsafe { (0x10007000 as *const VirtIO).read_volatile() }
+    );
+    println!(
+        "{:#x?}",
+        virtio0 = unsafe { (0x10008000 as *const VirtIO).read_volatile() }
+    );
+
     test::base_extension();
     test::sbi_ins_emulation();
 
@@ -287,4 +320,28 @@ fn parse_smp(dtb_pa: usize) -> BoardInfo {
             DtbObj::Property(_) => StepOver,
         });
     ans
+}
+
+#[derive(Debug)]
+#[repr(C)]
+struct VirtIO {
+    magic: U32Str,
+    version: u32,
+    device_id: u32,
+    vendor_id: U32Str,
+    features: u32,
+}
+
+struct U32Str(u32);
+
+use core::fmt::{Debug, Formatter, Result};
+
+impl Debug for U32Str {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        if let Ok(s) = core::str::from_utf8(&self.0.to_ne_bytes()) {
+            write!(f, "{s}")
+        } else {
+            write!(f, "{:#x}", self.0)
+        }
+    }
 }

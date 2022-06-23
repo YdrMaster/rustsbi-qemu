@@ -201,6 +201,12 @@ impl QemuArgs {
             .arg(self.build.dir().join("test-kernel.bin"))
             .args(&["-smp", &self.smp.unwrap_or(8).to_string()])
             .args(&["-serial", "mon:stdio"])
+            .args(&[
+                "-device",
+                "virtio-net-device,netdev=net0",
+                "-netdev",
+                "type=tap,id=net0,ifname=tap0",
+            ])
             .arg("-nographic")
             .optional(&self.gdb, |qemu, gdb| {
                 qemu.args(&["-gdb", &format!("tcp::{gdb}")]);
