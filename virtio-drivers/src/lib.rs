@@ -8,7 +8,7 @@ mod legacy;
 mod normal;
 
 pub use header::{
-    Header as MmioHeader, HeaderError as MmioHeaderError, Magic as MmioHeaderMagic,
+    Error as MmioHeaderError, Header as MmioHeader, Magic as MmioHeaderMagic,
     Version as MmioVersion,
 };
 pub use legacy::Interface as MmioLegacyInterface;

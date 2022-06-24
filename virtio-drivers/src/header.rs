@@ -1,42 +1,45 @@
 ﻿use crate::U32Str;
 use core::fmt;
+use volatile_register::RO;
 
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
 pub struct Header {
-    magic: Magic,
+    magic_value: Magic,
     version: Version,
     device_id: DeviceType,
     vendor_id: U32Str,
 }
 
 #[derive(Debug)]
-pub enum HeaderError {
+pub enum Error {
     InvalidMagic,
     InvalidVersion,
     UnknownType(u32),
 }
 
 impl Header {
-    pub fn from_raw_parts(addr: usize) -> Result<Header, HeaderError> {
+    pub fn from_raw_parts(addr: usize) -> Result<Header, Error> {
+        use Error::*;
+        /// 根据文档，前三个寄存器必须按顺序访问以在不符合要求时尽量减少误操作。
         #[repr(C)]
         struct Unchecked {
-            magic_value: u32,
-            version: u32,
-            device_id: u32,
-            _vendor_id: u32,
+            magic_value: RO<u32>,
+            version: RO<u32>,
+            device_id: RO<u32>,
+            vendor_id: RO<u32>,
         }
 
-        let unchecked = unsafe { (addr as *const Unchecked).read_volatile() };
-        if Magic(U32Str(unchecked.magic_value)) != MAGIC {
-            Err(HeaderError::InvalidMagic)
-        } else if Version::try_from(unchecked.version).is_err() {
-            Err(HeaderError::InvalidVersion)
-        } else if DeviceType::try_from(unchecked.device_id).is_err() {
-            Err(HeaderError::UnknownType(unchecked.device_id))
-        } else {
-            Ok(unsafe { core::mem::transmute(unchecked) })
-        }
+        let unchecked = unsafe { &*(addr as *const Unchecked) };
+        Ok(Header {
+            magic_value: Some(Magic(U32Str(unchecked.magic_value.read())))
+                .filter(|m| m == &MAGIC)
+                .ok_or(InvalidMagic)?,
+            version: Version::try_from(unchecked.version.read()).map_err(|_| InvalidVersion)?,
+            device_id: DeviceType::try_from(unchecked.device_id.read())
+                .map_err(|e| UnknownType(e.number))?,
+            vendor_id: U32Str(unchecked.vendor_id.read()),
+        })
     }
 }
 
