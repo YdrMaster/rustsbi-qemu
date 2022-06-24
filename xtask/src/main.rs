@@ -203,9 +203,9 @@ impl QemuArgs {
             .args(&["-serial", "mon:stdio"])
             .args(&[
                 "-device",
-                "virtio-net-device,netdev=net0",
+                "virtio-net-device,netdev=n0",
                 "-netdev",
-                "type=tap,id=net0,ifname=tap0",
+                "user,id=n0",
             ])
             .arg("-nographic")
             .optional(&self.gdb, |qemu, gdb| {
