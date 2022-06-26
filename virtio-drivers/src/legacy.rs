@@ -1,7 +1,9 @@
 ﻿// § 4.2.4 Legacy Interface
 
 use crate::{
-    header::{DeviceType, Magic, Version},
+    drivers::DeviceType,
+    header::{Magic, Version},
+    status::{self, DeviceStatus, DeviceStatusBits},
     U32Str,
 };
 use volatile_register::{RO, RW, WO};
@@ -30,7 +32,16 @@ pub struct Interface {
     pub interrupt_status: RO<u32>,
     pub interrupt_ack: WO<u32>,
     _align4: [u32; 2],
-    pub status: RW<u32>,
+    status: RW<DeviceStatusBits>,
+}
+
+impl Interface {
+    pub fn acknowledge(addr: usize) -> &'static Self {
+        let ans = unsafe { &*(addr as *const Self) };
+        status::test_and_push(&ans.status, DeviceStatus::Uninitialized).unwrap();
+        status::test_and_push(&ans.status, DeviceStatus::Acknowledged).unwrap();
+        ans
+    }
 }
 
 #[test]

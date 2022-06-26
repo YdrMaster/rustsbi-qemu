@@ -1,7 +1,9 @@
 ﻿// § 4.2.2 MMIO Device Register Layout
 
 use crate::{
-    header::{DeviceType, Magic, Version},
+    drivers::DeviceType,
+    header::{Magic, Version},
+    status::{test_and_push, DeviceStatus, DeviceStatusBits},
     U32Str,
 };
 use volatile_register::{RO, RW, WO};
@@ -29,7 +31,7 @@ pub struct Interface {
     pub interrupt_status: RO<u32>,
     pub interrupt_ack: WO<u32>,
     _align5: [u32; 2],
-    pub status: RW<u32>,
+    status: RW<DeviceStatusBits>,
     _align6: [u32; 3],
     pub queue_desc_low: WO<u32>,
     pub queue_desc_high: WO<u32>,
@@ -48,6 +50,15 @@ pub struct Interface {
     pub queue_reset: RW<u32>,
     _align10: [u32; 14],
     pub config_generation: RO<u32>,
+}
+
+impl Interface {
+    pub fn acknowledge(addr: usize) -> &'static Self {
+        let ans = unsafe { &*(addr as *const Self) };
+        test_and_push(&ans.status, DeviceStatus::Uninitialized).unwrap();
+        test_and_push(&ans.status, DeviceStatus::Acknowledged).unwrap();
+        ans
+    }
 }
 
 #[test]
