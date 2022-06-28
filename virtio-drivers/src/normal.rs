@@ -1,9 +1,9 @@
 ﻿// § 4.2.2 MMIO Device Register Layout
 
 use crate::{
+    device_status_field::{test_and_push, DeviceStatus, DeviceStatusField},
     drivers::DeviceType,
     header::{Magic, Version},
-    status::{test_and_push, DeviceStatus, DeviceStatusField},
     U32Str,
 };
 use volatile_register::{RO, RW, WO};

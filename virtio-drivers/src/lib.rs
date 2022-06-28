@@ -3,12 +3,20 @@
 #[macro_use]
 extern crate num_enum;
 
-mod drivers;
+// § 2.1
+mod device_status_field;
+// § 2.2
+// mod feature_bits;
+// todo
 mod header;
+// todo
+mod drivers;
+// todo
 mod legacy;
+// todo
 mod normal;
-mod status;
 
+pub use device_status_field::DeviceStatus;
 pub use drivers::DeviceType;
 pub use header::{
     Error as MmioHeaderError, Header as MmioHeader, Magic as MmioHeaderMagic,
@@ -16,7 +24,6 @@ pub use header::{
 };
 pub use legacy::Interface as MmioLegacyInterface;
 pub use normal::Interface as MmioInterface;
-pub use status::DeviceStatus;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
