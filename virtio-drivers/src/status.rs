@@ -2,66 +2,92 @@
 
 use volatile_register::RW;
 
+/// 设备状态字段
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 #[repr(transparent)]
-pub struct DeviceStatusBits(pub u32);
+pub struct DeviceStatusField(pub u32);
 
+/// 设备状态
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
-#[repr(u32)]
 pub enum DeviceStatus {
-    Uninitialized = 0,
-    Acknowledged = 1,
-    Driver = 2 | 1,
-    FeaturesOK = 8 | 2 | 1,
-    DriverOK = 8 | 4 | 2 | 1,
-    Failed = 128,
-    DeviceNeedsReset = 64,
+    /// 未初始化
+    Uninitialized,
+    /// 已发现
+    Acknowledged,
+    /// 驱动启动完毕
+    DriverLaunched,
+    /// 功能协商完毕
+    FeaturesOK,
+    /// 驱动初始化完毕
+    DriverOK,
+    /// 驱动错误
+    Failed,
+    /// 设备错误
+    DeviceNeedsReset,
 }
 
+/// 如果设备状态符合预期，将设备设置到下一个状态。
 pub fn test_and_push(
-    status: &RW<DeviceStatusBits>,
+    status: &RW<DeviceStatusField>,
     expected: DeviceStatus,
-) -> Result<DeviceStatus, Result<DeviceStatus, DeviceStatusBits>> {
+) -> Result<DeviceStatus, Result<DeviceStatus, DeviceStatusField>> {
     use DeviceStatus::*;
     let next = match DeviceStatus::try_from(status.read()) {
+        // 当前状态与预期状态一致
+        // 若是正常状态，向下一个状态转移
+        // 否则返回当前异常状态
         Ok(current) if current == expected => match current {
             Uninitialized => Acknowledged,
-            Acknowledged => Driver,
-            Driver => FeaturesOK,
+            Acknowledged => DriverLaunched,
+            DriverLaunched => FeaturesOK,
             FeaturesOK => DriverOK,
             DriverOK | Failed | DeviceNeedsReset => return Ok(current),
         },
+        // 当前状态与预期状态不一致
         current => return Err(current),
     };
-    unsafe { status.write(DeviceStatusBits(next as _)) };
+    unsafe { status.write(DeviceStatusField(next as _)) };
     Ok(next)
 }
 
-impl TryFrom<DeviceStatusBits> for DeviceStatus {
-    type Error = DeviceStatusBits;
+impl TryFrom<DeviceStatusField> for DeviceStatus {
+    type Error = DeviceStatusField;
 
-    fn try_from(value: DeviceStatusBits) -> Result<Self, Self::Error> {
-        if value.0 & DEVICE_NEEDS_RESET != 0 {
+    /// 状态字段的每个位都只能设置，不能清除，因此，正确的值是按流程累积的。
+    /// 例如，如果设置了 `DRIVER`，一定已经设置了 `ACKNOWLEDGE`。
+    /// 不满足这种累积性质的值是非法值。
+    fn try_from(value: DeviceStatusField) -> Result<Self, Self::Error> {
+        if value.0 & bits::DEVICE_NEEDS_RESET != 0 {
             Ok(Self::DeviceNeedsReset)
-        } else if value.0 & FAILED != 0 {
+        } else if value.0 & bits::FAILED != 0 {
             Ok(Self::Failed)
         } else {
             match value.0 {
-                DRIVER_OK => Ok(Self::DriverOK),
-                FEATURES_OK => Ok(Self::FeaturesOK),
-                DRIVER => Ok(Self::Driver),
-                ACKNOWLEDGED => Ok(Self::Acknowledged),
-                UNINITIALIZED => Ok(Self::Uninitialized),
+                steps::UNINITIALIZED => Ok(Self::Uninitialized),
+                steps::ACKNOWLEDGED => Ok(Self::Acknowledged),
+                steps::DRIVER_LAUNCHED => Ok(Self::DriverLaunched),
+                steps::FEATURES_OK => Ok(Self::FeaturesOK),
+                steps::DRIVER_OK => Ok(Self::DriverOK),
                 _ => Err(value),
             }
         }
     }
 }
 
-const UNINITIALIZED: u32 = DeviceStatus::Uninitialized as _;
-const ACKNOWLEDGED: u32 = DeviceStatus::Acknowledged as _;
-const DRIVER: u32 = DeviceStatus::Driver as _;
-const FEATURES_OK: u32 = DeviceStatus::FeaturesOK as _;
-const DRIVER_OK: u32 = DeviceStatus::DriverOK as _;
-const FAILED: u32 = DeviceStatus::Failed as _;
-const DEVICE_NEEDS_RESET: u32 = DeviceStatus::DeviceNeedsReset as _;
+mod bits {
+    pub(super) const ACKNOWLEDGE: u32 = 1;
+    pub(super) const DRIVER: u32 = 2;
+    pub(super) const FAILED: u32 = 128;
+    pub(super) const FEATURES_OK: u32 = 8;
+    pub(super) const DRIVER_OK: u32 = 4;
+    pub(super) const DEVICE_NEEDS_RESET: u32 = 64;
+}
+
+mod steps {
+    use super::bits;
+    pub(super) const UNINITIALIZED: u32 = 0;
+    pub(super) const ACKNOWLEDGED: u32 = bits::ACKNOWLEDGE;
+    pub(super) const DRIVER_LAUNCHED: u32 = ACKNOWLEDGED | bits::DRIVER;
+    pub(super) const FEATURES_OK: u32 = DRIVER_LAUNCHED | bits::FEATURES_OK;
+    pub(super) const DRIVER_OK: u32 = FEATURES_OK | bits::DRIVER_OK;
+}

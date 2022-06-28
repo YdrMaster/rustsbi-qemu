@@ -3,7 +3,7 @@
 use crate::{
     drivers::DeviceType,
     header::{Magic, Version},
-    status::{self, DeviceStatus, DeviceStatusBits},
+    status::{self, DeviceStatus, DeviceStatusField},
     U32Str,
 };
 use volatile_register::{RO, RW, WO};
@@ -32,7 +32,7 @@ pub struct Interface {
     pub interrupt_status: RO<u32>,
     pub interrupt_ack: WO<u32>,
     _align4: [u32; 2],
-    status: RW<DeviceStatusBits>,
+    status: RW<DeviceStatusField>,
 }
 
 impl Interface {
