@@ -1,5 +1,7 @@
 ﻿//! § 2.7.5 The Virtqueue Descriptor Table
 
+use super::VirtqIdx;
+use core::ops::Index;
 use volatile_register::RW;
 
 #[repr(C, align(16))]
@@ -8,8 +10,17 @@ pub struct DescriptorTable<const QSZ: usize>([VirtqDesc; QSZ]);
 impl<const QSZ: usize> DescriptorTable<QSZ> {
     pub fn fill_in_order(&self) {
         for (i, desc) in self.0.iter().enumerate() {
-            unsafe { desc.next.write((i + 1) as _) };
+            unsafe { desc.next.write(VirtqIdx::new(i + 1)) };
         }
+    }
+}
+
+impl<const QSZ: usize> Index<VirtqIdx> for DescriptorTable<QSZ> {
+    type Output = VirtqDesc;
+
+    #[inline]
+    fn index(&self, index: VirtqIdx) -> &Self::Output {
+        &self.0[u16::from_le(index.0) as usize]
     }
 }
 
@@ -18,7 +29,7 @@ pub struct VirtqDesc {
     addr: RW<u64>,
     len: RW<u32>,
     flags: RW<Flags>,
-    next: RW<u16>,
+    next: RW<VirtqIdx>,
 }
 
 impl VirtqDesc {
@@ -38,9 +49,9 @@ impl VirtqDesc {
     }
 
     #[inline]
-    pub fn next(&self) -> Option<usize> {
-        if self.flags().next() {
-            Some(u16::from_le(self.next.read()) as _)
+    pub fn next(&self) -> Option<VirtqIdx> {
+        if self.flags.read().next() {
+            Some(self.next.read())
         } else {
             None
         }

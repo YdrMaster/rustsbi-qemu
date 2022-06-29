@@ -21,7 +21,9 @@ pub use header::{
     Version as MmioVersion,
 };
 pub use mmio::{MmioInterface, MmioLegacyInterface};
-pub use split_virtqueues::{DescriptorTable, VirtqDesc, VirtqDescFlags};
+pub use split_virtqueues::{
+    DescriptorTable, VirtqAvail, VirtqAvailFlags, VirtqDesc, VirtqDescFlags,
+};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
