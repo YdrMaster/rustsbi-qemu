@@ -1,7 +1,7 @@
 ﻿// § 4.2.4 Legacy Interface
 
 use crate::{
-    device_status_field::{self, DeviceStatus, DeviceStatusField},
+    device_status_field::{test_and_push, DeviceStatus, DeviceStatusField},
     drivers::DeviceType,
     header::{Magic, Version},
     U32Str,
@@ -38,9 +38,14 @@ pub struct Interface {
 impl Interface {
     pub fn acknowledge(addr: usize) -> &'static Self {
         let ans = unsafe { &*(addr as *const Self) };
-        device_status_field::test_and_push(&ans.status, DeviceStatus::Uninitialized).unwrap();
-        device_status_field::test_and_push(&ans.status, DeviceStatus::Acknowledged).unwrap();
+        test_and_push(&ans.status, DeviceStatus::Uninitialized).unwrap();
+        test_and_push(&ans.status, DeviceStatus::Acknowledged).unwrap();
         ans
+    }
+
+    #[inline]
+    pub fn reset(&self) {
+        unsafe { self.status.write(DeviceStatusField(0)) };
     }
 }
 

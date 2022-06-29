@@ -59,6 +59,11 @@ impl Interface {
         test_and_push(&ans.status, DeviceStatus::Acknowledged).unwrap();
         ans
     }
+
+    #[inline]
+    pub fn reset(&self) {
+        unsafe { self.status.write(DeviceStatusField(0)) };
+    }
 }
 
 #[test]

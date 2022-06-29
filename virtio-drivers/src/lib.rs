@@ -12,9 +12,7 @@ mod header;
 // todo
 mod drivers;
 // todo
-mod legacy;
-// todo
-mod normal;
+mod mmio;
 
 pub use device_status_field::DeviceStatus;
 pub use drivers::DeviceType;
@@ -22,8 +20,7 @@ pub use header::{
     Error as MmioHeaderError, Header as MmioHeader, Magic as MmioHeaderMagic,
     Version as MmioVersion,
 };
-pub use legacy::Interface as MmioLegacyInterface;
-pub use normal::Interface as MmioInterface;
+pub use mmio::{MmioInterface, MmioLegacyInterface};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
