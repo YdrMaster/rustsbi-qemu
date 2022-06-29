@@ -22,7 +22,8 @@ pub use header::{
 };
 pub use mmio::{MmioInterface, MmioLegacyInterface};
 pub use split_virtqueues::{
-    DescriptorTable, VirtqAvail, VirtqAvailFlags, VirtqDesc, VirtqDescFlags,
+    DescriptorTable, VirtqAvail, VirtqAvailFlags, VirtqDesc, VirtqDescFlags, VirtqUsed,
+    VirtqUsedElem, VirtqUsedFlags,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]
