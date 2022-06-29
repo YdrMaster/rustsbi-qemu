@@ -5,8 +5,8 @@ extern crate num_enum;
 
 // § 2.1
 mod device_status_field;
-// § 2.2
-// mod feature_bits;
+// § 2.7
+mod split_virtqueues;
 // todo
 mod header;
 // todo
@@ -21,6 +21,7 @@ pub use header::{
     Version as MmioVersion,
 };
 pub use mmio::{MmioInterface, MmioLegacyInterface};
+pub use split_virtqueues::{DescriptorTable, VirtqDesc, VirtqDescFlags};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
