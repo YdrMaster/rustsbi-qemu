@@ -6,7 +6,7 @@ mod net;
 #[repr(u32)]
 pub enum DeviceType {
     Reserved = 0,
-    NetworkCard = 1,
+    NetworkCard = net::ID,
     BlockDevice = 2,
     Console = 3,
     EntropySource = 4,
