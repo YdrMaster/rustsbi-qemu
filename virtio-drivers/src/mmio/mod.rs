@@ -6,7 +6,7 @@ pub(crate) mod legacy;
 pub(crate) mod common;
 
 use crate::{DeviceType, U32Str};
-use core::fmt;
+use core::{fmt, marker::PhantomData};
 
 #[derive(Debug)]
 pub enum ProbeError {
@@ -44,44 +44,54 @@ pub enum Version {
     Normal = 2,
 }
 
-pub trait MmioInterface {
-    const VERSION: Version;
+pub struct MmioVirtio<T> {
+    addr: usize,
+    legacy: bool,
+    _phantom: PhantomData<T>,
+}
+
+pub trait MmioVirtioMeta {
     const TYPE: DeviceType;
+
     type FeatureBits;
+    const MINIUM_FEATURE_SET: Self::FeatureBits;
+    const SUPPORTED_FEATURE_SET: Self::FeatureBits;
 
-    unsafe fn from_raw_parts_unchecked(addr: usize) -> &'static Self;
+    type Config;
+}
 
-    fn as_common(&self) -> &common::Interface {
-        unsafe { &*(self as *const _ as *const common::Interface) }
-    }
-
-    fn probe(addr: usize) -> Result<&'static Self, ProbeError> {
+impl<const LEN: usize, Meta> MmioVirtio<Meta>
+where
+    Meta: MmioVirtioMeta<FeatureBits = crate::feature_bits::FeatureBits<LEN>>,
+{
+    pub fn new(addr: usize) -> Result<Self, ProbeError> {
         let common = common::Interface::probe(addr)?;
-        let version = common.version.read();
-        if version != Self::VERSION {
-            Err(ProbeError::VersionMismatch(version))?;
-        }
+        let legacy = matches!(common.version.read(), Version::Legacy);
         let device_type = common.device_id.read();
-        if device_type != Self::TYPE {
+        if device_type != Meta::TYPE {
             Err(ProbeError::TypeMismatch(device_type))?;
         }
         if !common.launch() {
             Err(ProbeError::SetStatusFailed)?;
         }
-        Ok(unsafe { Self::from_raw_parts_unchecked(addr) })
+        common
+            .negotiate(Meta::MINIUM_FEATURE_SET, Meta::SUPPORTED_FEATURE_SET)
+            .unwrap();
+        if legacy {
+            unsafe { &*(addr as *const legacy::Interface<Meta::Config>) }.set_page_size(4096);
+        }
+        Ok(Self {
+            addr,
+            legacy,
+            _phantom: PhantomData,
+        })
     }
 
-    fn reset(&self) {
-        self.as_common().reset()
+    fn common(&self) -> &common::Interface {
+        unsafe { &*(self.addr as *const common::Interface) }
     }
 
-    fn launch(&self) -> bool {
-        self.as_common().launch()
+    pub fn vendor_id(&self) -> U32Str {
+        self.common().vendor_id.read()
     }
-
-    fn vendor_id(&self) -> U32Str {
-        self.as_common().vendor_id.read()
-    }
-
-    fn negotiate(&self) -> Result<Self::FeatureBits, NeogotiateError>;
 }

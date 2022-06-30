@@ -15,8 +15,8 @@ mod mmio;
 mod device_types;
 
 pub use device_status_field::DeviceStatus;
-pub use device_types::{DeviceType, LegacyMmioVirtioNet};
-pub use mmio::{common::Interface as MmioVirtioCommon, MmioInterface};
+pub use device_types::{DeviceType, NetMeta};
+pub use mmio::{common::Interface as MmioVirtioCommon, MmioVirtio, MmioVirtioMeta};
 pub use split_virtqueues::{
     DescriptorTable, VirtqAvail, VirtqAvailFlags, VirtqDesc, VirtqDescFlags, VirtqUsed,
     VirtqUsedElem, VirtqUsedFlags,

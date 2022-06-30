@@ -1,26 +1,19 @@
 ﻿//! § 5.1 Network Device
 
 use super::DeviceType;
-use crate::mmio::{self, MmioInterface, Version};
+use crate::mmio::MmioVirtioMeta;
 
-pub struct LegacyMmioVirtioNet(mmio::legacy::Interface<Config>);
+pub struct NetMeta;
 
-impl MmioInterface for LegacyMmioVirtioNet {
-    const VERSION: Version = Version::Legacy;
+impl MmioVirtioMeta for NetMeta {
     const TYPE: DeviceType = DeviceType::NetworkCard;
+
     type FeatureBits = crate::feature_bits::FeatureBits<1>;
+    const MINIUM_FEATURE_SET: Self::FeatureBits = Self::FeatureBits::new([feature_bits::MAC]);
+    const SUPPORTED_FEATURE_SET: Self::FeatureBits =
+        Self::FeatureBits::new([feature_bits::MAC | feature_bits::STATUS]);
 
-    #[inline]
-    unsafe fn from_raw_parts_unchecked(addr: usize) -> &'static Self {
-        &*(addr as *const Self)
-    }
-
-    fn negotiate(&self) -> Result<Self::FeatureBits, mmio::NeogotiateError> {
-        self.as_common().negotiate(
-            crate::feature_bits::FeatureBits([feature_bits::MAC]),
-            crate::feature_bits::FeatureBits([feature_bits::MAC | feature_bits::STATUS]),
-        )
-    }
+    type Config = Config;
 }
 
 pub struct Config {
@@ -37,6 +30,11 @@ pub struct Config {
 
 mod feature_bits {
     #![allow(unused)]
+
+    use crate::feature_bits::FeatureBits;
+
+    pub(super) const MINIUM_FEATURE_SET: FeatureBits<1> = FeatureBits::new([MAC]);
+    pub(super) const SUPPORTED_FEATURE_SET: FeatureBits<1> = FeatureBits::new([MAC | STATUS]);
 
     pub(super) const CSUM: u32 = 1 << 0;
     pub(super) const GUEST_CSUM: u32 = 1 << 1;

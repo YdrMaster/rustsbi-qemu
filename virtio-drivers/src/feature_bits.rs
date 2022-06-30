@@ -1,9 +1,14 @@
 ﻿//! § 2.2 Feature Bits
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub struct FeatureBits<const LEN: usize>(pub [u32; LEN]);
+pub struct FeatureBits<const LEN: usize>([u32; LEN]);
 
 impl<const LEN: usize> FeatureBits<LEN> {
+    #[inline]
+    pub const fn new(bits: [u32; LEN]) -> Self {
+        Self(bits)
+    }
+
     /// 判断是否包含指定的特征位。
     pub fn contains(&self, rhs: Self) -> bool {
         rhs.0

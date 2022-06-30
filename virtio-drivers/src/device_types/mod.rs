@@ -2,7 +2,7 @@
 
 mod net;
 
-pub use net::LegacyMmioVirtioNet;
+pub use net::NetMeta;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, TryFromPrimitive)]
 #[repr(u32)]

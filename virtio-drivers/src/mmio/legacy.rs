@@ -5,7 +5,7 @@ use crate::{device_status_field::DeviceStatusField, device_types::DeviceType, U3
 use volatile_register::{RO, RW, WO};
 
 #[repr(C)]
-pub struct Interface<T = ()> {
+pub(crate) struct Interface<T = ()> {
     pub magic_value: RO<Magic>,
     pub version: RO<Version>,
     pub device_id: RO<DeviceType>,
@@ -13,9 +13,9 @@ pub struct Interface<T = ()> {
     pub host_features: RO<u32>,
     pub host_features_sel: WO<u32>,
     _align0: [u32; 2],
-    pub guest_features: WO<u32>,
-    pub guest_features_sel: WO<u32>,
-    pub guest_page_size: WO<u32>,
+    guest_features: WO<u32>,
+    guest_features_sel: WO<u32>,
+    guest_page_size: WO<u32>,
     _align1: [u32; 1],
     pub queue_sel: WO<u32>,
     pub queue_num_max: RO<u32>,
@@ -31,6 +31,12 @@ pub struct Interface<T = ()> {
     status: RW<DeviceStatusField>,
     _align5: [u32; 35],
     config: T,
+}
+
+impl<T> Interface<T> {
+    pub fn set_page_size(&self, psz: u32) {
+        unsafe { self.guest_page_size.write(psz) };
+    }
 }
 
 #[test]
