@@ -2,11 +2,13 @@
 
 mod net;
 
+pub use net::LegacyMmioVirtioNet;
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, TryFromPrimitive)]
 #[repr(u32)]
 pub enum DeviceType {
     Reserved = 0,
-    NetworkCard = net::ID,
+    NetworkCard = 1,
     BlockDevice = 2,
     Console = 3,
     EntropySource = 4,

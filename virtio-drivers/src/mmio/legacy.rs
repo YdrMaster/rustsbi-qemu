@@ -1,15 +1,11 @@
 ﻿// § 4.2.4 Legacy Interface
 
-use crate::{
-    device_status_field::{test_and_push, DeviceStatus, DeviceStatusField},
-    drivers::DeviceType,
-    header::{Magic, Version},
-    U32Str,
-};
+use super::{Magic, Version};
+use crate::{device_status_field::DeviceStatusField, device_types::DeviceType, U32Str};
 use volatile_register::{RO, RW, WO};
 
 #[repr(C)]
-pub struct Interface {
+pub struct Interface<T = ()> {
     pub magic_value: RO<Magic>,
     pub version: RO<Version>,
     pub device_id: RO<DeviceType>,
@@ -33,20 +29,8 @@ pub struct Interface {
     pub interrupt_ack: WO<u32>,
     _align4: [u32; 2],
     status: RW<DeviceStatusField>,
-}
-
-impl Interface {
-    pub fn acknowledge(addr: usize) -> &'static Self {
-        let ans = unsafe { &*(addr as *const Self) };
-        test_and_push(&ans.status, DeviceStatus::Uninitialized).unwrap();
-        test_and_push(&ans.status, DeviceStatus::Acknowledged).unwrap();
-        ans
-    }
-
-    #[inline]
-    pub fn reset(&self) {
-        unsafe { self.status.write(DeviceStatusField(0)) };
-    }
+    _align5: [u32; 35],
+    config: T,
 }
 
 #[test]
@@ -72,4 +56,5 @@ fn test() {
     assert_eq!(base + 0x60, &test.interrupt_status as *const _ as usize);
     assert_eq!(base + 0x64, &test.interrupt_ack as *const _ as usize);
     assert_eq!(base + 0x70, &test.status as *const _ as usize);
+    assert_eq!(base + 0x100, &test.config as *const _ as usize);
 }

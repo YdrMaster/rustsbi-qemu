@@ -1,8 +1,33 @@
 ﻿//! § 5.1 Network Device
 
-pub(super) const ID: u32 = 1;
+use super::DeviceType;
+use crate::mmio::{MmioInterface, MmioLegacyInterface, Version};
+
+pub struct LegacyMmioVirtioNet(MmioLegacyInterface<Config>);
+
+impl MmioInterface for LegacyMmioVirtioNet {
+    const VERSION: Version = Version::Legacy;
+    const TYPE: DeviceType = DeviceType::NetworkCard;
+
+    #[inline]
+    unsafe fn from_raw_parts_unchecked(addr: usize) -> &'static Self {
+        &*(addr as *const Self)
+    }
+}
 
 pub struct FeatureBits(u64);
+
+pub struct Config {
+    mac: [u8; 6],
+    status: u16,
+    max_virtqueue_pairs: u16,
+    mtu: u16,
+    speed: u32,
+    duplex: u8,
+    rss_max_key_size: u8,
+    rss_max_indirection_table_length: u16,
+    supported_hash_types: u32,
+}
 
 impl FeatureBits {
     const VIRTIO_NET_F_CSUM: u64 = 0;

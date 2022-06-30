@@ -5,7 +5,11 @@ use volatile_register::RW;
 /// 设备状态字段
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 #[repr(transparent)]
-pub struct DeviceStatusField(pub u32);
+pub struct DeviceStatusField(u32);
+
+impl DeviceStatusField {
+    pub const MMIO_RESET: Self = Self(0);
+}
 
 /// 设备状态
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]

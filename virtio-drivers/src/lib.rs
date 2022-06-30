@@ -1,4 +1,5 @@
 #![no_std]
+#![feature(ptr_metadata)]
 
 #[macro_use]
 extern crate num_enum;
@@ -8,18 +9,14 @@ mod device_status_field;
 // § 2.7
 mod split_virtqueues;
 // todo
-mod header;
-// todo
-mod drivers;
-// todo
 mod mmio;
+// § 5
+mod device_types;
+
+use core::fmt::Pointer;
 
 pub use device_status_field::DeviceStatus;
-pub use drivers::DeviceType;
-pub use header::{
-    Error as MmioHeaderError, Header as MmioHeader, Magic as MmioHeaderMagic,
-    Version as MmioVersion,
-};
+pub use device_types::{DeviceType, LegacyMmioVirtioNet};
 pub use mmio::{MmioInterface, MmioLegacyInterface};
 pub use split_virtqueues::{
     DescriptorTable, VirtqAvail, VirtqAvailFlags, VirtqDesc, VirtqDescFlags, VirtqUsed,
@@ -41,6 +38,16 @@ impl U32Str {
 }
 
 impl core::fmt::Debug for U32Str {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        if let Ok(s) = core::str::from_utf8(&self.0.to_ne_bytes()) {
+            s.fmt(f)
+        } else {
+            self.0.fmt(f)
+        }
+    }
+}
+
+impl core::fmt::Display for U32Str {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         if let Ok(s) = core::str::from_utf8(&self.0.to_ne_bytes()) {
             write!(f, "{s}")

@@ -81,20 +81,9 @@ extern "C" fn primary_rust_main(hartid: usize, dtb_pa: usize) -> ! {
     );
 
     {
-        use virtio_drivers::{DeviceType, MmioHeader, MmioLegacyInterface, MmioVersion};
-        let header = MmioHeader::probe(0x1000_8000);
-        if let Ok(MmioHeader {
-            magic_value: _,
-            version: MmioVersion::Legacy,
-            device_id,
-            vendor_id: _,
-        }) = header
-        {
-            println!("{header:?}");
-            if !matches!(device_id, DeviceType::Reserved) {
-                let _interface = MmioLegacyInterface::acknowledge(0x1000_8000);
-            }
-        }
+        use virtio_drivers::{LegacyMmioVirtioNet, MmioInterface};
+        let header = LegacyMmioVirtioNet::probe(0x1000_8000).unwrap();
+        println!("detected legacy virtio-net by {}", header.vendor_id());
     }
 
     test::base_extension();
