@@ -53,6 +53,11 @@ impl VirtqUsedElem {
     pub fn len(&self) -> usize {
         u32::from_le(self.len.read()) as _
     }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 #[derive(Clone, Copy)]

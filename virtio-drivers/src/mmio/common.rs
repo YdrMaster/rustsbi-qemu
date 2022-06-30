@@ -1,7 +1,8 @@
-﻿use super::{Magic, MmioInterface, ProbeError, Version, MAGIC};
+﻿use super::{Magic, NeogotiateError, ProbeError, Version, MAGIC};
 use crate::{
     device_status_field::{test_and_push, DeviceStatusField},
     device_types::DeviceType,
+    feature_bits::FeatureBits,
     DeviceStatus, U32Str,
 };
 use volatile_register::{RO, RW, WO};
@@ -33,22 +34,7 @@ pub struct Interface {
 }
 
 impl Interface {
-    #[inline]
-    pub(super) fn from_ref(other: &(impl MmioInterface + ?Sized)) -> &Self {
-        unsafe { &*(other as *const _ as *const Self) }
-    }
-}
-
-impl MmioInterface for Interface {
-    const VERSION: Version = unreachable!(); // never used
-    const TYPE: DeviceType = unreachable!(); // never used
-
-    #[inline]
-    unsafe fn from_raw_parts_unchecked(addr: usize) -> &'static Self {
-        &*(addr as *const Self)
-    }
-
-    fn probe(addr: usize) -> Result<&'static Self, ProbeError> {
+    pub fn probe(addr: usize) -> Result<&'static Self, ProbeError> {
         use ProbeError::*;
 
         /// 根据文档，前三个寄存器必须按顺序访问以在不符合要求时尽量减少误操作。
@@ -77,7 +63,7 @@ impl MmioInterface for Interface {
         Ok(ans)
     }
 
-    fn reset(&self) {
+    pub fn reset(&self) {
         loop {
             match test_and_push(&self.status, DeviceStatus::Uninitialized) {
                 Ok(_) | Err(Ok(DeviceStatus::Acknowledged)) => break,
@@ -86,12 +72,35 @@ impl MmioInterface for Interface {
         }
     }
 
-    fn launch(&self) -> bool {
+    pub(super) fn launch(&self) -> bool {
         test_and_push(&self.status, DeviceStatus::Acknowledged).is_ok()
     }
 
-    fn vendor_id(&self) -> U32Str {
-        self.vendor_id.read()
+    pub(crate) fn negotiate<const LEN: usize>(
+        &self,
+        minium: FeatureBits<LEN>,
+        supported: FeatureBits<LEN>,
+    ) -> Result<FeatureBits<LEN>, NeogotiateError> {
+        use core::sync::atomic::{fence, Ordering};
+        let device_features = FeatureBits::read_from_device(|i| {
+            unsafe { self.device_features_sel.write(i) };
+            fence(Ordering::AcqRel);
+            self.device_features.read()
+        });
+        if !device_features.contains(minium) {
+            Err(NeogotiateError::LeakFeature)?;
+        }
+        let and = device_features & supported;
+        and.write_to_device(|i, bits| {
+            unsafe { self.driver_features_sel.write(i) };
+            fence(Ordering::AcqRel);
+            unsafe { self.driver_features.write(bits) };
+        });
+        if test_and_push(&self.status, DeviceStatus::DriverLaunched).is_ok() {
+            Ok(and)
+        } else {
+            Err(NeogotiateError::SetStatusFailed)?
+        }
     }
 }
 

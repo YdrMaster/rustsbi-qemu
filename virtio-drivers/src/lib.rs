@@ -1,23 +1,22 @@
 #![no_std]
-#![feature(ptr_metadata)]
 
 #[macro_use]
 extern crate num_enum;
 
 // § 2.1
 mod device_status_field;
+// § 2.2
+mod feature_bits;
 // § 2.7
 mod split_virtqueues;
-// todo
+// § 4.2
 mod mmio;
 // § 5
 mod device_types;
 
-use core::fmt::Pointer;
-
 pub use device_status_field::DeviceStatus;
 pub use device_types::{DeviceType, LegacyMmioVirtioNet};
-pub use mmio::{MmioInterface, MmioLegacyInterface};
+pub use mmio::{common::Interface as MmioVirtioCommon, MmioInterface};
 pub use split_virtqueues::{
     DescriptorTable, VirtqAvail, VirtqAvailFlags, VirtqDesc, VirtqDescFlags, VirtqUsed,
     VirtqUsedElem, VirtqUsedFlags,

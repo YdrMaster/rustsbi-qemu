@@ -1,14 +1,12 @@
-﻿// todo
-mod legacy;
-// todo
-mod common;
-mod modern;
+﻿// § 4.2.2
+pub(crate) mod modern;
+// § 4.2.4
+pub(crate) mod legacy;
+// abstruction
+pub(crate) mod common;
 
 use crate::{DeviceType, U32Str};
 use core::fmt;
-
-pub use legacy::Interface as MmioLegacyInterface;
-pub use modern::Interface as MmioModernInterface;
 
 #[derive(Debug)]
 pub enum ProbeError {
@@ -18,6 +16,12 @@ pub enum ProbeError {
     UnknownType(u32),
     VersionMismatch(Version),
     TypeMismatch(DeviceType),
+    SetStatusFailed,
+}
+
+#[derive(Debug)]
+pub enum NeogotiateError {
+    LeakFeature,
     SetStatusFailed,
 }
 
@@ -43,8 +47,13 @@ pub enum Version {
 pub trait MmioInterface {
     const VERSION: Version;
     const TYPE: DeviceType;
+    type FeatureBits;
 
     unsafe fn from_raw_parts_unchecked(addr: usize) -> &'static Self;
+
+    fn as_common(&self) -> &common::Interface {
+        unsafe { &*(self as *const _ as *const common::Interface) }
+    }
 
     fn probe(addr: usize) -> Result<&'static Self, ProbeError> {
         let common = common::Interface::probe(addr)?;
@@ -63,14 +72,16 @@ pub trait MmioInterface {
     }
 
     fn reset(&self) {
-        common::Interface::from_ref(self).reset();
+        self.as_common().reset()
     }
 
     fn launch(&self) -> bool {
-        common::Interface::from_ref(self).launch()
+        self.as_common().launch()
     }
 
     fn vendor_id(&self) -> U32Str {
-        common::Interface::from_ref(self).vendor_id.read()
+        self.as_common().vendor_id.read()
     }
+
+    fn negotiate(&self) -> Result<Self::FeatureBits, NeogotiateError>;
 }

@@ -50,7 +50,7 @@ pub fn test_and_push(
         // 当前状态与预期状态不一致
         current => return Err(current),
     };
-    unsafe { status.write(DeviceStatusField(next as _)) };
+    unsafe { status.write(DeviceStatusField(next.into_bits())) };
     Ok(next)
 }
 
@@ -74,6 +74,19 @@ impl TryFrom<DeviceStatusField> for DeviceStatus {
                 steps::DRIVER_OK => Ok(Self::DriverOK),
                 _ => Err(value),
             }
+        }
+    }
+}
+
+impl DeviceStatus {
+    fn into_bits(self) -> u32 {
+        match self {
+            Self::Uninitialized => steps::UNINITIALIZED,
+            Self::Acknowledged => steps::ACKNOWLEDGED,
+            Self::DriverLaunched => steps::DRIVER_LAUNCHED,
+            Self::FeaturesOK => steps::FEATURES_OK,
+            Self::DriverOK => steps::DRIVER_OK,
+            Self::Failed | Self::DeviceNeedsReset => unreachable!(),
         }
     }
 }

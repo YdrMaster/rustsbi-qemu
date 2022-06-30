@@ -82,8 +82,9 @@ extern "C" fn primary_rust_main(hartid: usize, dtb_pa: usize) -> ! {
 
     {
         use virtio_drivers::{LegacyMmioVirtioNet, MmioInterface};
-        let header = LegacyMmioVirtioNet::probe(0x1000_8000).unwrap();
-        println!("detected legacy virtio-net by {}", header.vendor_id());
+        let net = LegacyMmioVirtioNet::probe(0x1000_8000).unwrap();
+        println!("detected legacy virtio-net by {}", net.vendor_id());
+        println!("feature = {:?}", net.negotiate());
     }
 
     test::base_extension();
