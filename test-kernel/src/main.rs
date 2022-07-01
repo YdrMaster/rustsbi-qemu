@@ -80,6 +80,38 @@ extern "C" fn primary_rust_main(hartid: usize, dtb_pa: usize) -> ! {
 ------------------------------------------------"
     );
 
+    {
+        use virtio_drivers::{
+            drivers::VirtioNetLegacyMmio, mmio, split_virtqueues::LegacyVirtqueueObj,
+        };
+        let virtio = mmio::probe(0x1000_8000).unwrap();
+        println!(
+            "detected {:?} {:?} by {}",
+            virtio.version.read(),
+            virtio.device_id.read(),
+            virtio.vendor_id.read()
+        );
+        let recv: LegacyVirtqueueObj<2> =
+            unsafe { core::mem::transmute([0u8; core::mem::size_of::<LegacyVirtqueueObj<2>>()]) };
+        let transmit: LegacyVirtqueueObj<2> =
+            unsafe { core::mem::transmute([0u8; core::mem::size_of::<LegacyVirtqueueObj<2>>()]) };
+        let net = VirtioNetLegacyMmio::from_common(virtio, (&recv, &transmit));
+        print!(
+            "\
+mac: {:?}
+status: {:#x?}
+mtu: {:?}
+speed: {:#x?}
+sduplex: {:#x?}
+",
+            net.mac(),
+            net.status(),
+            net.mtu(),
+            net.speed(),
+            net.duplex(),
+        )
+    }
+
     test::base_extension();
     test::sbi_ins_emulation();
 

@@ -15,7 +15,7 @@ pub fn print(args: Arguments) {
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => {
-        $crate::console::print(core::format_args!($($arg)*));
+        $crate::console::print(core::format_args!($($arg)*))
     }
 }
 

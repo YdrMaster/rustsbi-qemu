@@ -199,9 +199,15 @@ impl QemuArgs {
             .arg(self.build.dir().join("rustsbi-qemu.bin"))
             .arg("-kernel")
             .arg(self.build.dir().join("test-kernel.bin"))
+            .arg("-nographic")
             .args(&["-smp", &self.smp.unwrap_or(8).to_string()])
             .args(&["-serial", "mon:stdio"])
-            .arg("-nographic")
+            .args(&[
+                "-device",
+                "virtio-net-device,netdev=n0",
+                "-netdev",
+                "user,id=n0",
+            ])
             .optional(&self.gdb, |qemu, gdb| {
                 qemu.args(&["-gdb", &format!("tcp::{gdb}")]);
             })
