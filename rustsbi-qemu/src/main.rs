@@ -134,6 +134,8 @@ extern "C" fn rust_main(_hartid: usize, opaque: usize) -> Operation {
         );
     }
 
+    clint::msip::clear();
+
     let hsm = HSM.wait();
     if let Some(supervisor) = hsm.take_supervisor() {
         // 设置并打印 pmp
