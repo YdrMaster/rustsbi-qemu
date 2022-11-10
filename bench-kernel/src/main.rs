@@ -39,38 +39,42 @@ extern "C" fn rust_main(hartid: usize, _dtb_pa: usize) -> ! {
     rcore_console::init_console(&Console);
     rcore_console::set_log_level(option_env!("LOG"));
     rcore_console::test_log();
-    // 打开软中断
-    unsafe {
-        sie::set_ssoft();
-        sstatus::set_sie();
-    };
+
     // 测试调用延迟
     let t0 = time::read();
 
-    for _ in 0..0xffff {
+    for _ in 0..0x20000 {
         let _ = sbi_rt::get_marchid();
     }
 
     let t1 = time::read();
     log::info!("marchid duration = {}", t1 - t0);
+
+    // 打开软中断
+    unsafe { sie::set_ssoft() };
     // 测试中断响应延迟
     let t0 = time::read();
-
-    for _ in 0..0xffff {
+    for _ in 0..0x20000 {
         unsafe {
+            sstatus::set_sie();
             core::arch::asm!(
-                "   la   {0}, 1f
-                    csrw stvec, {0}
+                "   la    {0}, 1f
+                    csrw  stvec, {0}
+                    mv    a0, a2
+                    mv    a1, zero
                     ecall
-                    wfi
-                .align 2
-                1:
+                 0: wfi
+                    j 0b
+                 .align 2
+                 1: csrci sip, {ssip}
                 ",
                 out(reg) _,
+                ssip = const 1 << 1,
                 in("a7") 0x735049,
                 in("a6") 0,
-                in("a0") 1 << hartid,
+                in("a0") 0,
                 in("a1") 0,
+                in("a2") 1 << hartid,
                 options(nomem),
             );
         }
